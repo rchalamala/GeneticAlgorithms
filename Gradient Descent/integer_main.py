@@ -6,56 +6,46 @@ Created on Sun Sep  5 21:30:31 2021
 @author: Rahul Chalamala
 """
 
-# https://nerdimite.medium.com/introduction-to-genetic-algorithms-58263747b9a0
-
 import numpy as np
 import matplotlib.pyplot as plt
+import gmpy2
+from gmpy2 import xmpz
 
 
 rng = np.random.default_rng()
 
 
-n = 30
-
-lb = 0
+lb = -100
 ub = 100
 
-population_size = 200
+population_size = 150
 generations = 100
 crossover_probability = 0.65
 mutation_probability = 0.3
 
 
-x = np.random.randint(lb, ub, n)
-y = np.random.randint(lb, ub, n)
-city_map = np.c_[x, y]
+n = 2
 
+
+def f(x):
+    return (-np.cos(np.array([x[0]])) * np.cos(np.array([x[1]])) * np.exp(np.array([- (x[0] - np.pi) ** 2 - (x[1] - np.pi) ** 2]))).item()
+
+
+'''
+x = np.linspace(-1000, 1000, 100000)
+y = np.array([f([i]) for i in x])
 
 plt.figure()
-plt.scatter(x, y)
-
-
-cities = np.arange(n)
+plt.plot(x, y)
+'''
 
 
 def initialize():
-    population = []
-
-    for _ in range(population_size):
-        individual = cities.copy()
-        rng.shuffle(individual)
-        population.append(individual)
-
-    return population
+    return np.random.randint(lb, ub, (population_size, n))
 
 
 def fitness(solution):
-    total = 0
-
-    for i in range(n):
-        total += np.linalg.norm(city_map[solution[i]] - city_map[solution[(i + 1) % n]])
-
-    return total
+    return f(solution)
 
 
 def selection(population, weights):
@@ -63,49 +53,59 @@ def selection(population, weights):
 
 
 def crossover(parent1, parent2):
-    c1 = np.random.randint(0, n)
-    c2 = np.random.randint(c1 + 1, n + 1)
+    child = np.empty(n)
 
-    child = np.full(n, -1)
+    for axis in range(n):
+        signs = np.array([1 if parent1[axis] >= 0 else -1, 1 if parent2[axis] >= 0 else -1])
 
-    child[c1:c2] = parent1[c1:c2]
+        bits1 = xmpz(int(parent1[axis] * signs[0]))
+        bits2 = xmpz(int(parent2[axis] * signs[1]))
 
-    # BINARY SEARCH TO CHECK IF CHILD IN PARENT
+        if len(bits1) > len(bits2):
+            bits1, bits2 = bits2, bits1
 
-    j = 0
-    for i in range(c1):
-        while parent2[j] in child:
-            j += 1
-        child[i] = parent2[j]
+        c1 = np.random.randint(0, len(bits1))
+        c2 = np.random.randint(c1 + 1, len(bits1) + 1)
 
-    for i in range(c2, len(parent2)):
-        while parent2[j] in child:
-            j += 1
-        child[i] = parent2[j]
+        crossed = xmpz(0)
+
+        crossed[c1:c2] = bits1[c1:c2]
+
+        crossed[:c1] = bits2[:c1]
+        crossed[c2:] = bits2[c2:]
+
+        child[axis] = rng.choice(signs) * int(crossed)
 
     return child
 
 
 def mutation(individual):
-    i = np.random.randint(0, n)
-    j = np.random.randint(0, n)
+    mutant = np.empty(n)
 
-    mutant = individual.copy()
+    for axis in range(n):
+        bits = xmpz(int(individual[axis] * (1 if individual[axis] >= 0 else -1)))
 
-    mutant[i], mutant[j] = mutant[j], mutant[i]
+        for bit in range(len(bits)):
+            if np.random.randint(0, 2) == 1:
+                bits[bit] ^= 1
+
+        mutant[axis] = int(bits) * (1 if np.random.randint(0, 2) == 0 else -1)
 
     return mutant
 
 
 def main():
     population = initialize()
-    solution = [0, 0]
-    original = 0
+    solution = [0, np.empty(n)]
 
     for i in range(generations):
         print(i)
 
         population_fitness = [fitness(x) for x in population]
+
+        if max(population_fitness) == min(population_fitness):
+            print("CONVERGED")
+            break
 
         best_fitness = min(population_fitness)
         best_index = population_fitness.index(best_fitness)
@@ -114,15 +114,6 @@ def main():
         if i == 0 or best_fitness < solution[0]:
             solution = [best_fitness, best_individual]
 
-        # print(population_fitness)
-        if i == 0:
-            original = min(population_fitness)
-
-        if max(population_fitness) - min(population_fitness) < 1e-7:
-            print("CONVERGED")
-            break
-
-        print(max(population_fitness))
         print(min(population_fitness))
         print(solution[0])
 
@@ -148,17 +139,11 @@ def main():
 
         population = new_population
 
-    solution_points = np.array([city_map[x] for x in solution[1]] + [city_map[solution[1][0]]])
-    x = solution_points[:, 0]
-    y = solution_points[:, 1]
+    point = (solution[1], solution[0])
 
-    plt.figure()
-    plt.text(1, 1, fitness(solution[1]))
-    plt.scatter(x, y)
-    plt.plot(x, y)
+    # plt.annotate('(%s, %s)' % point, xy=point, textcoords='data')
 
-    print(original)
-    print(fitness(solution[1]))
+    print(point)
 
 
 if __name__ == "__main__":
