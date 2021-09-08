@@ -136,12 +136,12 @@ def main():
             parent1 = selection(population, weights)
             parent2 = selection(population, weights)
 
-            if np.random.random() <= crossover_probability:
+            if np.random.rand() <= crossover_probability:
                 child = crossover(parent1, parent2)
             else:
                 child = rng.choice(np.array([parent1, parent2]))
 
-            if np.random.random() < mutation_probability:
+            if np.random.rand() <= mutation_probability:
                 child = mutation(parent1)
 
             new_population.append(child)
