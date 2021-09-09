@@ -133,7 +133,7 @@ def main():
                 child = rng.choice(np.array([parent1, parent2]))
 
             if np.random.rand() <= mutation_probability:
-                child = mutation(parent1)
+                child = mutation(child)
 
             new_population.append(child)
 

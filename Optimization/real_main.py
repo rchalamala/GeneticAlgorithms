@@ -19,10 +19,10 @@ rng = np.random.default_rng(seed)
 rng = np.random.default_rng()
 
 
-lb = -6
-ub = 6
+lb = -100
+ub = 100
 
-population_size = 500
+population_size = 5000
 generations = 1000
 crossover_probability = 0.65
 mutation_probability = 0.85
@@ -33,9 +33,9 @@ n = 2
 
 
 def f(x):
-    return x[0] ** 2 - 10 * np.cos(2 * np.pi * x[0]) + x[1] ** 2 - 10 * np.cos(2 * np.pi * x[1]) + 20 # rastrigin
+    # return x[0] ** 2 - 10 * np.cos(2 * np.pi * x[0]) + x[1] ** 2 - 10 * np.cos(2 * np.pi * x[1]) + 20 # rastrigin
     # return np.sin(np.sqrt(x[0] ** 2 + x[1] ** 2))
-    # return -np.cos(x[0]) * np.cos(x[1]) * np.exp(-(x[0] - np.pi) ** 2 - (x[1] - np.pi) ** 2) # easom
+    return -np.cos(x[0]) * np.cos(x[1]) * np.exp(-(x[0] - np.pi) ** 2 - (x[1] - np.pi) ** 2) # easom
     # return x[0] ** 2 + x[1] ** 2
 
 
@@ -136,7 +136,7 @@ def main():
                 child = rng.choice(np.array([parent1, parent2]))
 
             if np.random.rand() <= mutation_probability:
-                child = mutation(parent1)
+                child = mutation(child)
 
             new_population.append(child)
 
