@@ -319,8 +319,6 @@ def main():
     output(goal)
     output(process(goal, solution[1]))
 
-    print(solution[0])
-
 
 if __name__ == "__main__":
     main()
