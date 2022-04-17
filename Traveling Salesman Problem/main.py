@@ -20,10 +20,11 @@ n = 30
 lb = 0
 ub = 100
 
-population_size = 200
+population_size = 30
 generations = 100
 crossover_probability = 0.65
 mutation_probability = 0.3
+elitism = 0.2
 
 
 x = np.random.randint(lb, ub, n)
@@ -99,42 +100,45 @@ def mutation(individual):
 
 def main():
     population = initialize()
+    population = [(fitness(organism), organism) for organism in population]
+    population.sort(key = lambda x: x[0])
+
     solution = [0, 0]
     original = 0
 
     for i in range(generations):
         print(i)
 
-        population_fitness = [fitness(x) for x in population]
-
-        best_fitness = min(population_fitness)
-        best_index = population_fitness.index(best_fitness)
-        best_individual = population[best_index]
+        best_fitness = population[0][0]
+        best_index = 0
+        best_individual = population[0][1]
 
         if i == 0 or best_fitness < solution[0]:
             solution = [best_fitness, best_individual]
 
         # print(population_fitness)
         if i == 0:
-            original = min(population_fitness)
+            original = population[0][0]
 
-        if max(population_fitness) - min(population_fitness) < 1e-7:
+        if population[-1][0] - population[0][0] < 1e-2:
             print("CONVERGED")
             break
 
-        print(max(population_fitness))
-        print(min(population_fitness))
+        print(population[-1][0])
+        print(population[0][0])
         print(solution[0])
 
         new_population = []
 
-        max_value = max(population_fitness)
-        total_sum = max_value * population_size - sum(population_fitness)
-        weights = [(max_value - x) / total_sum for x in population_fitness]
+        max_value = population[-1][0]
+        total_sum = max_value * population_size - sum(x for x, organism in population)
+        weights = [(max_value - x) / total_sum for x, organism in population]
+
+        population_organisms = np.array([organism for x, organism in population], dtype=object)
 
         for j in range(population_size):
-            parent1 = selection(population, weights)
-            parent2 = selection(population, weights)
+            parent1 = selection(population_organisms, weights)
+            parent2 = selection(population_organisms, weights)
 
             if np.random.rand() <= crossover_probability:
                 child = crossover(parent1, parent2)
@@ -144,9 +148,16 @@ def main():
             if np.random.rand() <= mutation_probability:
                 child = mutation(child)
 
-            new_population.append(child)
+            new_population.append((fitness(child), child))
 
-        population = new_population
+        elite_population_size = int(elitism * population_size)
+        
+        population = population[:elite_population_size]
+
+        normal = rng.choice(np.array(new_population, dtype=object), population_size - elite_population_size).tolist()
+
+        population.extend(normal)
+        population.sort(key = lambda x: x[0])
 
     solution_points = np.array([city_map[x] for x in solution[1]] + [city_map[solution[1][0]]])
     x = solution_points[:, 0]
