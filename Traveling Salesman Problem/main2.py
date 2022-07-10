@@ -17,16 +17,16 @@ import imageio
 rng = np.random.default_rng()
 
 
-n = 30
+n = 100
 
 lb = 0
 ub = 1000
 
-population_size = 1000
+population_size = 500
 generations = 1000
-crossover_probability = 0.6
-elitism = 0.1
-# mutation_probability = 1 - crossover_probability - elitism
+crossover_probability = 0.85
+mutation_probability = 0.7
+elitism = 0.85
 
 
 x = np.random.randint(lb, ub, n)
@@ -91,23 +91,7 @@ def crossover(parent1, parent2):
     return child
 
 
-def mutation1(individual):
-    c1 = np.random.randint(0, n, dtype=dt)
-    c2 = np.random.randint(c1 + 1, n + 1, dtype=dt)
-
-    individual[c1:c2] = individual[c1:c2][::-1]
-
-    return individual
-
-    i = np.random.randint(0, n, dtype=dt)
-    j = np.random.randint(0, n, dtype=dt)
-
-    individual[i], individual[j] = individual[j], individual[i]
-
-    return individual
-
-
-def mutation2(individual):
+def mutation(individual):
     i = np.random.randint(0, n, dtype=dt)
     j = np.random.randint(0, n, dtype=dt)
 
@@ -172,29 +156,34 @@ def main():
         print(population_fitness[0])
         #print(solution[0])
 
-        first_bound = int(elitism * population_size)
-        second_bound = int((elitism + crossover_probability) * population_size)
+        max_value = population_fitness[-1]
+        total_sum = max_value * population_size - np.sum(population_fitness)
+        weights = np.array([(max_value - x) / total_sum for x in population_fitness], dtype=fdt)
 
-        max_value = population_fitness[second_bound - 1]
-        total_sum = max_value * (second_bound - first_bound) - np.sum(population_fitness[first_bound:second_bound])
-        weights = np.array([(max_value - x) / total_sum for x in population_fitness[first_bound:second_bound]], dtype=fdt)
+        new_population = np.zeros(shape=(population_size, n), dtype=dt)
+        new_population_fitness = np.zeros(population_size, dtype=fdt)
 
-        for j in range(second_bound - first_bound):
-            parent1 = selection(population[first_bound:second_bound], weights)
-            parent2 = selection(population[first_bound:second_bound], weights)
+        for j in range(population_size):
+            parent1 = selection(population, weights)
+            parent2 = selection(population, weights)
 
-            child = crossover(parent1, parent2)
-
-            population[first_bound + j] = child
-            population_fitness[first_bound + j] = fitness(child)
-        
-        for j in range(population_size - second_bound - first_bound):
-            if np.random.rand() <= 0.5:
-                population[second_bound + j] = mutation1(population[second_bound + j])
+            if np.random.rand() <= crossover_probability:
+                child = crossover(parent1, parent2)
             else:
-                population[second_bound + j] = mutation2(population[second_bound + j])
+                child = rng.choice(np.array([parent1, parent2]))
 
-            population_fitness[second_bound + j] = fitness(population[second_bound + j])
+            if np.random.rand() <= mutation_probability:
+                child = mutation(child)
+
+            new_population[j] = child
+            new_population_fitness[j] = fitness(child)
+
+        elite_population_size = int(elitism * population_size)
+        
+        normal = rng.choice(np.arange(population_size, dtype=dt), population_size - elite_population_size)
+
+        population[int(elitism * population_size):] = new_population[normal]
+        population_fitness[int(elitism * population_size):] = new_population_fitness[normal]
 
         i += 1
         last_time += 1
